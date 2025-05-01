@@ -483,23 +483,55 @@ def get_summary():
         # Combine the chunks into a single text
         content = "\n".join([doc.page_content for doc in results])
         
+        # Generate a quick summary based on report type
+        if any(keyword in content.lower() for keyword in ['covid', 'sars-cov-2', 'rt-pcr']):
+            # COVID report analysis
+            summary_prompt = ChatPromptTemplate.from_messages([
+                ("system", """Provide a concise analysis (2-3 lines) of this COVID-19 report including patient name, test date, and result (positive/negative)."""),
+                ("human", "Analyze this COVID-19 report:\n\n{content}")
+            ])
+        elif any(keyword in content.lower() for keyword in ['cbc', 'hemoglobin', 'wbc', 'rbc', 'platelets']):
+            # CBC report analysis
+            summary_prompt = ChatPromptTemplate.from_messages([
+                ("system", """Provide a concise analysis (2-3 lines) of this blood test report including patient name, test date, and any abnormal values that need attention."""),
+                ("human", "Analyze this blood test report:\n\n{content}")
+            ])
+        elif any(keyword in content.lower() for keyword in ['prescription', 'rx', 'tablet', 'capsule', 'mg']):
+            # Prescription analysis
+            summary_prompt = ChatPromptTemplate.from_messages([
+                ("system", """Provide a concise analysis (2-3 lines) of this prescription including key medications prescribed and their primary purpose."""),
+                ("human", "Analyze this prescription:\n\n{content}")
+            ])
+        else:
+            # General medical document analysis
+            summary_prompt = ChatPromptTemplate.from_messages([
+                ("system", """Provide a concise analysis (2-3 lines) of this medical document including main content and purpose."""),
+                ("human", "Analyze this medical document:\n\n{content}")
+            ])
+        
+        # Generate summary
+        summary_chain = summary_prompt | llm
+        summary_response = summary_chain.invoke({
+            "content": content
+        })
+        
         # Create a comprehensive medical analysis including treatment and precautions
         comprehensive_prompt = ChatPromptTemplate.from_messages([
-            ("system", """You are a medical assistant AI analyzing a medical report. Provide a comprehensive analysis in this EXACT format with emoji markers (no substitutions):
+            ("system", """You are a medical assistant AI analyzing a medical report. Provide a comprehensive but concise analysis in this format:
 
 🔹 **Medical Summary**:  
-<3-4 line summary of key findings in simple, clear language that states what values are high/low/normal and concludes with positive/negative health outcome>
+<3-4 line summary of key findings in simple, clear language>
 
 🔹 **Probable Medical Condition(s)**:  
-<Specific conditions suggested by the test results>
+<Likely condition(s) based on the findings>
 
 🔹 **Recommended Treatment Options**:  
-<2-3 treatments or procedures with brief explanations>
+<2-3 standard treatments, medications, or procedures for the identified condition(s)>
 
 🔹 **Precautions & Lifestyle Advice**:  
-<2-3 practical tips tailored to the findings>
+<2-3 practical tips and recommendations>
 
-Format exactly as shown with these headings and emoji markers."""),
+Keep your response fact-based, medically grounded, and understandable to a non-expert."""),
             ("human", "Analyze this medical document and provide a comprehensive assessment:\n\n{content}")
         ])
         
@@ -509,37 +541,12 @@ Format exactly as shown with these headings and emoji markers."""),
             "content": content
         })
         
-        # Get response content
-        comprehensive_content = comprehensive_response.content
-        
-        print(f"Comprehensive analysis: {comprehensive_content[:100]}...")
-        print(type(comprehensive_content))
-        
-        # For backwards compatibility, generate a brief summary too
-        summary_prompt = ChatPromptTemplate.from_messages([
-            ("system", """You are a helpful and friendly medical AI assistant. Given a medical report, respond clearly and simply.
-
-            For each report section (like Hemoglobin, WBC, Platelets, etc.), give a **1–2 line explanation** of what the value means, whether it's high, low, or normal, and what it might indicate. Use only actual numbers from the report — **do not add list numbers (1, 2, 3, etc.)**. You may include percentages if they appear in the report.
-
-            At the end, write a short and easy-to-understand **overall summary** combining everything. Be conversational and human, like you’re gently explaining to someone with no medical background.
-
-            Keep everything simple, clear, and non-alarming. Avoid medical jargon unless absolutely necessary. use total less than 120 words
-            """),
-            ("human", "Give the final response in paragraph a :\n\n{content}")
-        ])
-        
-        summary_chain = summary_prompt | llm
-        summary_response = summary_chain.invoke({
-            "content": comprehensive_content
-        })
-        
-        summary_content = summary_response.content
-        print(type(summary_content))
+        print(f"Generated quick summary: {summary_response.content}")
+        print(f"Generated comprehensive analysis: {comprehensive_response.content}")
         
         return jsonify({
-            'summary': summary_content,
-            'comprehensive_analysis': comprehensive_content
-            
+            'summary': summary_response.content,
+            'comprehensive_analysis': comprehensive_response.content
         }), 200
         
     except Exception as e:

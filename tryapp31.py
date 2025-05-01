@@ -517,15 +517,8 @@ Format exactly as shown with these headings and emoji markers."""),
         
         # For backwards compatibility, generate a brief summary too
         summary_prompt = ChatPromptTemplate.from_messages([
-            ("system", """You are a helpful and friendly medical AI assistant. Given a medical report, respond clearly and simply.
-
-            For each report section (like Hemoglobin, WBC, Platelets, etc.), give a **1–2 line explanation** of what the value means, whether it's high, low, or normal, and what it might indicate. Use only actual numbers from the report — **do not add list numbers (1, 2, 3, etc.)**. You may include percentages if they appear in the report.
-
-            At the end, write a short and easy-to-understand **overall summary** combining everything. Be conversational and human, like you’re gently explaining to someone with no medical background.
-
-            Keep everything simple, clear, and non-alarming. Avoid medical jargon unless absolutely necessary. use total less than 120 words
-            """),
-            ("human", "Give the final response in paragraph a :\n\n{content}")
+            ("system", """Dont do anything"""),
+            ("human", "Just give this as it as back with no changes:\n\n{content}")
         ])
         
         summary_chain = summary_prompt | llm
