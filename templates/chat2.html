@@ -155,7 +155,7 @@
     .type_msg::placeholder {
       color: rgba(255, 255, 255, 0.7) !important;
     }
-    
+
     #medicalHelpForm {
       background-color: rgba(0, 0, 0, 0.2);
       padding: 10px;
@@ -615,6 +615,57 @@
       color: #58cc71;
       font-weight: 600;
     }
+
+    /* FAQ Buttons Styles */
+    .faq-buttons-container {
+      width: 100%;
+      padding: 10px 5px;
+      margin-top: 10px;
+    }
+
+    .faq-buttons-wrapper {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .faq-btn {
+      background-color: rgba(0, 0, 0, 0.2);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      padding: 8px 15px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .faq-btn:hover {
+      background-color: rgba(0, 0, 0, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .faq-btn span {
+      position: relative;
+      z-index: 1;
+    }
+
+    @keyframes fadeOut {
+      from {
+        opacity: 1;
+      }
+
+      to {
+        opacity: 0;
+      }
+    }
+
+    .faq-buttons-container.fade-out {
+      animation: fadeOut 0.5s forwards;
+    }
   </style>
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
@@ -666,6 +717,20 @@
               help you today? {% endif %}
             </div>
           </div>
+
+          <!-- FAQ Quick Action Buttons - Only shown once on load -->
+          <div id="faqButtonsContainer" class="faq-buttons-container d-flex justify-content-center mb-4">
+            <div class="faq-buttons-wrapper">
+              <button class="faq-btn" data-question="What are common symptoms of COVID-19?"><span>Ask About
+                  COVID-19</span></button>
+              <button class="faq-btn" data-question="How can I find a specialist doctor near me?"><span>Find a
+                  Doctor</span></button>
+              <button class="faq-btn" data-question="What are the best ways to stay healthy?"><span>Health
+                  Tips</span></button>
+              <button class="faq-btn" data-question="What should I do in a medical emergency?"><span>Emergency
+                  Help</span></button>
+            </div>
+          </div>
         </div>
         <div class="card-footer">
           <!-- Medical Help Form (Initially Hidden) -->
@@ -706,7 +771,9 @@
                     id="consultBtn">
                     <i class="fas fa-user-md"></i> Consult Doctor
                   </a>
-
+                  <a class="dropdown-item" href="/whitelist-instructions" target="_blank" id="whitelistBtn">
+                    <i class="fas fa-envelope"></i> Whitelist Our Emails
+                  </a>
                 </div>
               </div>
             </div>
@@ -757,6 +824,16 @@
         }
       };
 
+      // Check if FAQ buttons have been shown before
+      const faqButtonsShown = localStorage.getItem('faqButtonsShown');
+      if (faqButtonsShown) {
+        // Hide FAQ buttons if they've been shown before
+        $("#faqButtonsContainer").hide();
+      } else {
+        // Mark as shown for future sessions
+        localStorage.setItem('faqButtonsShown', 'true');
+      }
+
       // Function to show loading animation
       function showLoadingAnimation() {
         console.log("Showing loading animation...");
@@ -787,13 +864,6 @@
 
         // Append the loading message to the chat
         $("#messageFormeight").append(loadingMessage);
-
-
-
-
-
-
-
 
         // Scroll to the bottom of the chat
         const chatBody = document.getElementById("messageFormeight");
@@ -1162,286 +1232,294 @@
                   },
                 });
 
-              // Hide loading animation
-              hideLoadingAnimation();
+                // Hide loading animation
+                hideLoadingAnimation();
 
-              // Show error message in chat
-              const errorHtml =
-                '<div class="d-flex justify-content-start mb-4">' +
-                '<div class="img_cont_msg"><img src="static/images/nurse.png" class="rounded-circle user_img_msg"></div>' +
-                '<div class="msg_cotainer">' +
-                `Error processing file: ${error.error || "Upload failed"}` +
-                '<span class="msg_time">Now</span></div></div>';
+                // Show error message in chat
+                const fileErrorHtml =
+                  '<div class="d-flex justify-content-start mb-4">' +
+                  '<div class="img_cont_msg"><img src="static/images/nurse.png" class="rounded-circle user_img_msg"></div>' +
+                  '<div class="msg_cotainer">' +
+                  `Error processing file: ${error.error || "Upload failed"}` +
+                  '<span class="msg_time">Now</span></div></div>';
 
-              $("#messageFormeight").append($.parseHTML(errorHtml));
-              $("#messageFormeight").scrollTop(
-                $("#messageFormeight")[0].scrollHeight
-              );
+                $("#messageFormeight").append($.parseHTML(fileErrorHtml));
+                $("#messageFormeight").scrollTop(
+                  $("#messageFormeight")[0].scrollHeight
+                );
 
-            // Hide loading animation
-            hideLoadingAnimation();
+                // Voice Input Functionality
+                let mediaRecorder;
+                let audioChunks = [];
+                let mediaStream;
 
-            // Show error message in chat
-            const errorHtml =
-              '<div class="d-flex justify-content-start mb-4">' +
-              '<div class="img_cont_msg"><img src="static/images/nurse.png" class="rounded-circle user_img_msg"></div>' +
-              '<div class="msg_cotainer">' +
-              "Upload failed. Please try again." +
-              '<span class="msg_time">Now</span></div></div>';
+                document
+                  .getElementById("voiceBtn")
+                  .addEventListener("click", async function () {
+                    const button = this;
 
-            $("#messageFormeight").append($.parseHTML(errorHtml));
-            $("#messageFormeight").scrollTop(
-              $("#messageFormeight")[0].scrollHeight
-            );
+                    if (!mediaRecorder) {
+                      try {
+                        mediaStream = await navigator.mediaDevices.getUserMedia({
+                          audio: true,
+                        });
+                        mediaRecorder = new MediaRecorder(mediaStream);
+                        audioChunks = [];
 
-      // Voice Input Functionality
-      let mediaRecorder;
-      let audioChunks = [];
-      let mediaStream;
+                        mediaRecorder.ondataavailable = (event) => {
+                          audioChunks.push(event.data);
+                        };
 
-      document
-        .getElementById("voiceBtn")
-        .addEventListener("click", async function () {
-          const button = this;
+                        mediaRecorder.onstop = async () => {
+                          // Stop all tracks in the media stream
+                          mediaStream.getTracks().forEach((track) => track.stop());
 
-          if (!mediaRecorder) {
-            try {
-              mediaStream = await navigator.mediaDevices.getUserMedia({
-                audio: true,
-              });
-              mediaRecorder = new MediaRecorder(mediaStream);
-              audioChunks = [];
+                          const audioBlob = new Blob(audioChunks, {
+                            type: "audio/wav",
+                          });
+                          const reader = new FileReader();
 
-              mediaRecorder.ondataavailable = (event) => {
-                audioChunks.push(event.data);
-              };
+                          reader.onload = function () {
+                            const base64Audio = reader.result.split(",")[1];
 
-              mediaRecorder.onstop = async () => {
-                // Stop all tracks in the media stream
-                mediaStream.getTracks().forEach((track) => track.stop());
+                            // Send to speech-to-text endpoint
+                            fetch("/speech_to_text", {
+                              method: "POST",
+                              headers: {
+                                "Content-Type": "application/json",
+                              },
+                              body: JSON.stringify({
+                                audio_data: base64Audio,
+                              }),
+                            })
+                              .then((response) => {
+                                if (!response.ok) {
+                                  throw new Error("Network response was not ok");
+                                }
+                                return response.json();
+                              })
+                              .then((data) => {
+                                if (data.text) {
+                                  document.getElementById("text").value = data.text;
+                                } else if (data.error) {
+                                  console.error("Speech-to-text error:", data.error);
+                                  alert(
+                                    "Error converting speech to text. Please try again."
+                                  );
+                                }
+                              })
+                              .catch((error) => {
+                                console.error("Error:", error);
+                                alert(
+                                  "Error processing voice input. Please try again."
+                                );
+                              });
+                          };
 
-                const audioBlob = new Blob(audioChunks, {
-                  type: "audio/wav",
-                });
-                const reader = new FileReader();
+                          reader.readAsDataURL(audioBlob);
 
-                reader.onload = function () {
-                  const base64Audio = reader.result.split(",")[1];
+                          // Reset the button state
+                          button.classList.remove("recording");
+                          button.querySelector("i").classList.remove("fa-stop");
+                          button.querySelector("i").classList.add("fa-microphone");
+                          mediaRecorder = null;
+                          mediaStream = null;
+                        };
 
-                  // Send to speech-to-text endpoint
-                  fetch("/speech_to_text", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                      audio_data: base64Audio,
-                    }),
-                  })
-                    .then((response) => {
-                      if (!response.ok) {
-                        throw new Error("Network response was not ok");
-                      }
-                      return response.json();
-                    })
-                    .then((data) => {
-                      if (data.text) {
-                        document.getElementById("text").value = data.text;
-                      } else if (data.error) {
-                        console.error("Speech-to-text error:", data.error);
+                        mediaRecorder.start();
+                        button.classList.add("recording");
+                        button.querySelector("i").classList.remove("fa-microphone");
+                        button.querySelector("i").classList.add("fa-stop");
+                      } catch (error) {
+                        console.error("Error accessing microphone:", error);
                         alert(
-                          "Error converting speech to text. Please try again."
+                          "Error accessing microphone. Please ensure you have granted microphone permissions."
                         );
+                        // Reset button state on error
+                        button.classList.remove("recording");
+                        button.querySelector("i").classList.remove("fa-stop");
+                        button.querySelector("i").classList.add("fa-microphone");
+                        mediaRecorder = null;
+                        mediaStream = null;
                       }
-                    })
-                    .catch((error) => {
-                      console.error("Error:", error);
-                      alert(
-                        "Error processing voice input. Please try again."
+                    } else {
+                      mediaRecorder.stop();
+                    }
+                  });
+
+                // Medical Help Button Click Handler
+                $("#findHelpBtn").click(function () {
+                  console.log("Medical help button clicked"); // Debug log
+                  $("#medicalHelpForm").show();
+                  $("#text").hide();
+                });
+
+                // Cancel Medical Help Search
+                $("#cancelMedicalHelp").click(function () {
+                  $("#medicalHelpForm").hide();
+                  $("#text").show();
+                  $("#diseaseInput").val("");
+                  $("#locationInput").val("");
+                });
+
+                // Search Medical Help
+                $("#searchMedicalHelp").click(function () {
+                  console.log("Search button clicked"); // Debug log
+                  const disease = $("#diseaseInput").val();
+                  const location = $("#locationInput").val();
+
+                  console.log("Disease:", disease, "Location:", location); // Debug log
+
+                  if (!disease || !location) {
+                    alert("Please enter both disease and location");
+                    return;
+                  }
+
+                  // Show user message
+                  const date = new Date();
+                  const hour = date.getHours();
+                  const minute = date.getMinutes();
+                  const str_time = hour + ":" + (minute < 10 ? "0" : "") + minute;
+
+                  const userHtml =
+                    '<div class="d-flex justify-content-end mb-4">' +
+                    '<div class="msg_cotainer_send">' +
+                    `Looking for medical help for ${disease} in ${location}` +
+                    '<span class="msg_time_send">' +
+                    str_time +
+                    "</span></div>" +
+                    '<div class="img_cont_msg"><img src="https://i.ibb.co/d5b84Xw/Untitled-design.png" class="rounded-circle user_img_msg"></div></div>';
+
+                  $("#messageFormeight").append(userHtml);
+                  $("#messageFormeight").scrollTop(
+                    $("#messageFormeight")[0].scrollHeight
+                  );
+
+                  // Show loading animation
+                  showLoadingAnimation();
+
+                  // Make API call
+                  $.ajax({
+                    url: "/find_medical_help",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({ disease: disease, location: location }),
+                    success: function (response) {
+                      console.log("API Response:", response); // Debug log
+                      // Hide loading animation
+                      hideLoadingAnimation();
+
+                      if (response.success) {
+                        // Format the response to preserve line breaks
+                        const formattedResponse = response.response.replace(/\n/g, "<br>");
+
+                        const botHtml =
+                          '<div class="d-flex justify-content-start mb-4">' +
+                          '<div class="img_cont_msg"><img src="static/images/nurse.png" class="rounded-circle user_img_msg"></div>' +
+                          '<div class="msg_cotainer">' +
+                          formattedResponse +
+                          '<span class="msg_time">' +
+                          str_time +
+                          "</span></div></div>";
+
+                        // Append to messageFormeight instead of replacing chat-response content
+                        $("#messageFormeight").append($.parseHTML(botHtml));
+                      } else {
+                        const errorHtml =
+                          '<div class="d-flex justify-content-start mb-4">' +
+                          '<div class="img_cont_msg"><img src="static/images/nurse.png" class="rounded-circle user_img_msg"></div>' +
+                          '<div class="msg_cotainer">' +
+                          response.message +
+                          '<span class="msg_time">' +
+                          str_time +
+                          "</span></div></div>";
+
+                        $("#messageFormeight").append($.parseHTML(errorHtml));
+                      }
+
+                      $("#messageFormeight").scrollTop(
+                        $("#messageFormeight")[0].scrollHeight
                       );
-                    });
-                };
 
-                reader.readAsDataURL(audioBlob);
+                      // Reset form
+                      $("#medicalHelpForm").hide();
+                      $("#text").show();
+                      $("#diseaseInput").val("");
+                      $("#locationInput").val("");
+                    },
+                    error: function (xhr, status, error) {
+                      console.error("AJAX Error:", status, error); // Debug log
+                      console.error("Response:", xhr.responseText); // Debug log
+                      // Hide loading animation
+                      hideLoadingAnimation();
 
-                // Reset the button state
-                button.classList.remove("recording");
-                button.querySelector("i").classList.remove("fa-stop");
-                button.querySelector("i").classList.add("fa-microphone");
-                mediaRecorder = null;
-                mediaStream = null;
-              };
+                      const errorHtml =
+                        '<div class="d-flex justify-content-start mb-4">' +
+                        '<div class="img_cont_msg"><img src="static/images/nurse.png" class="rounded-circle user_img_msg"></div>' +
+                        '<div class="msg_cotainer">' +
+                        "An error occurred while searching for medical help. Please try again." +
+                        '<span class="msg_time">' +
+                        str_time +
+                        "</span></div></div>";
 
-              mediaRecorder.start();
-              button.classList.add("recording");
-              button.querySelector("i").classList.remove("fa-microphone");
-              button.querySelector("i").classList.add("fa-stop");
-            } catch (error) {
-              console.error("Error accessing microphone:", error);
-              alert(
-                "Error accessing microphone. Please ensure you have granted microphone permissions."
-              );
-              // Reset button state on error
-              button.classList.remove("recording");
-              button.querySelector("i").classList.remove("fa-stop");
-              button.querySelector("i").classList.add("fa-microphone");
-              mediaRecorder = null;
-              mediaStream = null;
+                      $("#messageFormeight").append($.parseHTML(errorHtml));
+                      $("#messageFormeight").scrollTop(
+                        $("#messageFormeight")[0].scrollHeight
+                      );
+
+                      // Reset form
+                      $("#medicalHelpForm").hide();
+                      $("#text").show();
+                      $("#diseaseInput").val("");
+                      $("#locationInput").val("");
+                    },
+                  });
+                });
+
+                // Debug function to examine response object
+                function debugResponse(response) {
+                  console.log("Debug - Summary response object:", response);
+                  console.log("Debug - Response keys:", Object.keys(response));
+                  console.log("Debug - Has comprehensive_analysis:", response.hasOwnProperty('comprehensive_analysis'));
+
+                  if (response.comprehensive_analysis) {
+                    console.log("Debug - comprehensive_analysis content type:", typeof response.comprehensive_analysis);
+                    console.log("Debug - comprehensive_analysis content length:", response.comprehensive_analysis.length);
+                    console.log("Debug - comprehensive_analysis preview:", response.comprehensive_analysis.substring(0, 100));
+                  } else {
+                    console.log("Debug - comprehensive_analysis not found or empty");
+                  }
+
+                  if (response.summary) {
+                    console.log("Debug - summary content type:", typeof response.summary);
+                    console.log("Debug - summary content length:", response.summary.length);
+                    console.log("Debug - summary preview:", response.summary.substring(0, 100));
+                  }
+                }
+
+                // FAQ Button Click Handler
+                $(".faq-btn").click(function () {
+                  const question = $(this).data('question');
+
+                  // Fade out the FAQ buttons container
+                  $("#faqButtonsContainer").addClass('fade-out');
+
+                  // Hide the buttons after animation completes
+                  setTimeout(() => {
+                    $("#faqButtonsContainer").hide();
+                  }, 500);
+
+                  // Fill the question into the input field
+                  $("#text").val(question);
+
+                  // Submit the form
+                  $("#messageArea").submit();
+                });
+              });
             }
-          } else {
-            mediaRecorder.stop();
-          }
-        });
-
-      // Medical Help Button Click Handler
-      $("#findHelpBtn").click(function () {
-        console.log("Medical help button clicked"); // Debug log
-        $("#medicalHelpForm").show();
-        $("#text").hide();
+          });
+    });
       });
-
-      // Cancel Medical Help Search
-      $("#cancelMedicalHelp").click(function () {
-        $("#medicalHelpForm").hide();
-        $("#text").show();
-        $("#diseaseInput").val("");
-        $("#locationInput").val("");
-      });
-
-      // Search Medical Help
-      $("#searchMedicalHelp").click(function () {
-        console.log("Search button clicked"); // Debug log
-        const disease = $("#diseaseInput").val();
-        const location = $("#locationInput").val();
-
-        console.log("Disease:", disease, "Location:", location); // Debug log
-
-        if (!disease || !location) {
-          alert("Please enter both disease and location");
-          return;
-        }
-
-        // Show user message
-        const date = new Date();
-        const hour = date.getHours();
-        const minute = date.getMinutes();
-        const str_time = hour + ":" + (minute < 10 ? "0" : "") + minute;
-
-        const userHtml =
-          '<div class="d-flex justify-content-end mb-4">' +
-          '<div class="msg_cotainer_send">' +
-          `Looking for medical help for ${disease} in ${location}` +
-          '<span class="msg_time_send">' +
-          str_time +
-          "</span></div>" +
-          '<div class="img_cont_msg"><img src="https://i.ibb.co/d5b84Xw/Untitled-design.png" class="rounded-circle user_img_msg"></div></div>';
-
-        $("#messageFormeight").append(userHtml);
-        $("#messageFormeight").scrollTop(
-          $("#messageFormeight")[0].scrollHeight
-        );
-
-        // Show loading animation
-        showLoadingAnimation();
-
-        // Make API call
-        $.ajax({
-          url: "/find_medical_help",
-          type: "POST",
-          contentType: "application/json",
-          data: JSON.stringify({ disease: disease, location: location }),
-          success: function (response) {
-            console.log("API Response:", response); // Debug log
-            // Hide loading animation
-            hideLoadingAnimation();
-
-            if (response.success) {
-              // Format the response to preserve line breaks
-              const formattedResponse = response.response.replace(/\n/g, "<br>");
-
-              const botHtml =
-                '<div class="d-flex justify-content-start mb-4">' +
-                '<div class="img_cont_msg"><img src="static/images/nurse.png" class="rounded-circle user_img_msg"></div>' +
-                '<div class="msg_cotainer">' +
-                formattedResponse +
-                '<span class="msg_time">' +
-                str_time +
-                "</span></div></div>";
-
-              // Append to messageFormeight instead of replacing chat-response content
-              $("#messageFormeight").append($.parseHTML(botHtml));
-            } else {
-              const errorHtml =
-                '<div class="d-flex justify-content-start mb-4">' +
-                '<div class="img_cont_msg"><img src="static/images/nurse.png" class="rounded-circle user_img_msg"></div>' +
-                '<div class="msg_cotainer">' +
-                response.message +
-                '<span class="msg_time">' +
-                str_time +
-                "</span></div></div>";
-
-              $("#messageFormeight").append($.parseHTML(errorHtml));
-            }
-
-            $("#messageFormeight").scrollTop(
-              $("#messageFormeight")[0].scrollHeight
-            );
-
-            // Reset form
-            $("#medicalHelpForm").hide();
-            $("#text").show();
-            $("#diseaseInput").val("");
-            $("#locationInput").val("");
-          },
-          error: function (xhr, status, error) {
-            console.error("AJAX Error:", status, error); // Debug log
-            console.error("Response:", xhr.responseText); // Debug log
-            // Hide loading animation
-            hideLoadingAnimation();
-
-            const errorHtml =
-              '<div class="d-flex justify-content-start mb-4">' +
-              '<div class="img_cont_msg"><img src="static/images/nurse.png" class="rounded-circle user_img_msg"></div>' +
-              '<div class="msg_cotainer">' +
-              "An error occurred while searching for medical help. Please try again." +
-              '<span class="msg_time">' +
-              str_time +
-              "</span></div></div>";
-
-            $("#messageFormeight").append($.parseHTML(errorHtml));
-            $("#messageFormeight").scrollTop(
-              $("#messageFormeight")[0].scrollHeight
-            );
-
-            // Reset form
-            $("#medicalHelpForm").hide();
-            $("#text").show();
-            $("#diseaseInput").val("");
-            $("#locationInput").val("");
-          },
-        });
-      });
-
-      // Debug function to examine response object
-      function debugResponse(response) {
-        console.log("Debug - Summary response object:", response);
-        console.log("Debug - Response keys:", Object.keys(response));
-        console.log("Debug - Has comprehensive_analysis:", response.hasOwnProperty('comprehensive_analysis'));
-
-        if (response.comprehensive_analysis) {
-          console.log("Debug - comprehensive_analysis content type:", typeof response.comprehensive_analysis);
-          console.log("Debug - comprehensive_analysis content length:", response.comprehensive_analysis.length);
-          console.log("Debug - comprehensive_analysis preview:", response.comprehensive_analysis.substring(0, 100));
-        } else {
-          console.log("Debug - comprehensive_analysis not found or empty");
-        }
-
-        if (response.summary) {
-          console.log("Debug - summary content type:", typeof response.summary);
-          console.log("Debug - summary content length:", response.summary.length);
-          console.log("Debug - summary preview:", response.summary.substring(0, 100));
-        }
-      }
     });
   </script>
 </body>

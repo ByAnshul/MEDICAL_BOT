@@ -21,122 +21,6 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style111.css')}}">
     <style>
-        /* Full height and responsive layout */
-        html,
-        body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
-
-        .container-fluid {
-            padding: 0;
-            height: 100%;
-            overflow: hidden;
-            max-width: 100%;
-        }
-
-        .row {
-            height: 100%;
-            margin: 0;
-            justify-content: center;
-        }
-
-        .col-md-10,
-        .col-xl-8 {
-            height: 100%;
-            padding: 0;
-        }
-
-        /* Adjust column width for different screen sizes */
-        @media (min-width: 1200px) {
-            .col-xl-8 {
-                flex: 0 0 85%;
-                max-width: 85%;
-            }
-        }
-
-        @media (min-width: 992px) and (max-width: 1199px) {
-            .col-xl-8 {
-                flex: 0 0 90%;
-                max-width: 90%;
-            }
-        }
-
-        @media (min-width: 768px) and (max-width: 991px) {
-            .col-md-10 {
-                flex: 0 0 95%;
-                max-width: 95%;
-            }
-        }
-
-        @media (max-width: 767px) {
-
-            .col-md-10,
-            .col-xl-8 {
-                flex: 0 0 100%;
-                max-width: 100%;
-            }
-
-            .msg_cotainer,
-            .msg_cotainer_send {
-                max-width: 85%;
-                padding: 10px 15px;
-                font-size: 14px;
-            }
-
-            .user_info {
-                padding-top: 5px;
-            }
-
-            .user_info span {
-                font-size: 16px;
-            }
-
-            .user_info p {
-                font-size: 13px;
-            }
-
-            .faq-btn {
-                font-size: 13px;
-                padding: 6px 12px;
-            }
-
-            .input-group {
-                padding: 3px;
-            }
-        }
-
-        .chat {
-            height: 100%;
-        }
-
-        .card {
-            height: 100%;
-            border-radius: 0;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .card-header {
-            flex-shrink: 0;
-        }
-
-        .card-body {
-            height: auto;
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-        }
-
-        .card-footer {
-            flex-shrink: 0;
-            padding: 10px;
-            background-color: rgba(0, 0, 0, 0.2);
-        }
-
         .action-btn {
             width: 40px;
             height: 40px;
@@ -194,17 +78,15 @@
         }
 
         .msg_cotainer {
-            max-width: 85%;
+            max-width: 80%;
             white-space: normal;
             word-wrap: break-word;
-            padding: 12px 18px;
         }
 
         .msg_cotainer_send {
-            max-width: 85%;
+            max-width: 80%;
             white-space: normal;
             word-wrap: break-word;
-            padding: 12px 18px;
         }
 
         /* Style for medical help response */
@@ -548,14 +430,6 @@
             animation: slideDown 0.3s ease;
         }
 
-        /* Responsive adjustment for mobile */
-        @media (max-width: 767px) {
-            .med-alert-content {
-                margin: 20px 15px;
-                max-width: calc(100% - 30px);
-            }
-        }
-
         .med-alert-header {
             display: flex;
             justify-content: space-between;
@@ -683,14 +557,6 @@
             flex: 1;
         }
 
-        /* Responsive styles for form rows on mobile */
-        @media (max-width: 767px) {
-            .form-row {
-                flex-direction: column;
-                gap: 5px;
-            }
-        }
-
         /* Style for form controls in the popup */
         .med-alert-body input {
             background-color: #2a2a2a;
@@ -704,12 +570,6 @@
             font-size: 14px;
             margin-bottom: 5px;
             display: block;
-        }
-
-        /* Add more space between messages */
-        .d-flex.justify-content-start.mb-4,
-        .d-flex.justify-content-end.mb-4 {
-            margin-bottom: 1.8rem !important;
         }
     </style>
 </head>

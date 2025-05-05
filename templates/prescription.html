@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Medication Reminders</title>
+  <style>
+    :root {
+      --primary: #2196f3;
+      --success: #4caf50;
+      --background: #121212;
+      --card-bg: #1e1e1e;
+      --text-color: #ffffff;
+      --input-bg: #2a2a2a;
+      --border: #333;
+      --radius: 6px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--background);
+      color: var(--text-color);
+      padding: 1rem;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .header h1 {
+      font-size: 1.8rem;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .header p {
+      opacity: 0.8;
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    .prescription-card {
+      background: var(--card-bg);
+      max-width: 600px;
+      margin: auto;
+      padding: 1.2rem;
+      border-radius: var(--radius);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .instructions {
+      background: rgba(33, 150, 243, 0.1);
+      padding: 1rem;
+      border-radius: var(--radius);
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .instructions-list {
+      padding-left: 1.5rem;
+      margin: 0.5rem 0;
+    }
+
+    .instructions-list li {
+      margin-bottom: 0.5rem;
+    }
+
+    h2 {
+      margin-bottom: 1rem;
+      font-size: 1.4rem;
+      color: var(--primary);
+    }
+
+    .form-group label {
+      font-size: 0.9rem;
+      margin-bottom: 0.3rem;
+      display: block;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 0.45rem 0.6rem;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      color: var(--text-color);
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+    }
+
+    .medicine-group {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.8rem;
+      background: rgba(33, 150, 243, 0.08);
+      padding: 0.8rem;
+      border: 1px solid var(--primary);
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      position: relative;
+    }
+
+    .remove-btn {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: #ff4444;
+      color: white;
+      border: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .add-btn,
+    #submitBtn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      margin-top: 0.5rem;
+      font-size: 0.95rem;
+      display: inline-block;
+      transition: background 0.2s ease;
+    }
+
+    .add-btn:hover,
+    #submitBtn:hover {
+      background: #1c7ed6;
+    }
+
+    #submitBtn {
+      width: 100%;
+      background: var(--success);
+      margin-top: 1.2rem;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 500px) {
+      .medicine-group {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .back-link {
+      display: inline-block;
+      color: var(--primary);
+      text-decoration: none;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header">
+    <h1>Medication Reminder System</h1>
+    <p>Never miss a dose again. Set up email reminders for your medications and receive timely notifications.</p>
+  </div>
+
+  <div class="prescription-card">
+    <div class="instructions">
+      <strong>How it works:</strong>
+      <ol class="instructions-list">
+        <li>Enter your email address where you want to receive reminders</li>
+        <li>Add each medication with its dosage information</li>
+        <li>Set the time for each reminder and the duration in days</li>
+        <li>Schedule your reminders and check your email inbox</li>
+      </ol>
+      <p><small>Note: First-time emails might go to your spam folder. Please check and mark as "not spam" to ensure
+          future deliveries.</small></p>
+    </div>
+
+    <h2>💊 Schedule Your Medication Reminders</h2>
+    <form id="prescriptionForm">
+      <div class="form-group">
+        <label for="patientEmail">Your Email</label>
+        <input type="email" id="patientEmail" placeholder="Enter email for reminders" required>
+      </div>
+
+      <div id="medicinesContainer">
+        <div class="medicine-group">
+          <button type="button" class="remove-btn">×</button>
+          <div class="form-group">
+            <label>Medicine Name</label>
+            <input type="text" placeholder="e.g., Aspirin" required>
+          </div>
+          <div class="form-group">
+            <label>Dosage</label>
+            <input type="text" placeholder="e.g., 1 tablet morning" required>
+          </div>
+          <div class="form-group">
+            <label>Reminder Time</label>
+            <input type="time" value="08:00" required>
+          </div>
+          <div class="form-group">
+            <label>Duration (days)</label>
+            <input type="number" min="1" value="7" required>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" class="add-btn" id="addMedicine">➕ Add Medicine</button>
+      <button type="submit" id="submitBtn">📅 Schedule Reminders</button>
+    </form>
+    <a href="/chat-with-faq" class="back-link">← Back to Chat</a>
+  </div>
+
+  <script>
+    const timeValues = ['08:00', '10:00', '12:00', '18:00', '22:00'];
+
+    function generateTime() {
+      return timeValues[Math.floor(Math.random() * timeValues.length)];
+    }
+
+    document.getElementById('addMedicine').addEventListener('click', () => {
+      const container = document.getElementById('medicinesContainer');
+      const template = document.querySelector('.medicine-group');
+      const clone = template.cloneNode(true);
+
+      clone.querySelectorAll('input').forEach(input => {
+        if (input.type === 'number') {
+          input.value = '7';
+        } else if (input.type === 'time') {
+          input.value = generateTime();
+        } else {
+          input.value = '';
+        }
+      });
+
+      clone.querySelector('.remove-btn').addEventListener('click', () => clone.remove());
+      container.appendChild(clone);
+    });
+
+    document.querySelectorAll('.remove-btn').forEach(btn => {
+      btn.addEventListener('click', function () {
+        // Only remove if there's more than one medicine group
+        if (document.querySelectorAll('.medicine-group').length > 1) {
+          this.parentElement.remove();
+        } else {
+          alert('You must have at least one medication.');
+        }
+      });
+    });
+
+    document.getElementById('prescriptionForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById('patientEmail').value;
+      const groups = document.querySelectorAll('.medicine-group');
+      const medicines = Array.from(groups).map(group => ({
+        name: group.querySelector('input[type="text"]').value,
+        dosage: group.querySelector('input[placeholder*="tablet"]').value,
+        time: group.querySelector('input[type="time"]').value,
+        days: parseInt(group.querySelector('input[type="number"]').value)
+      }));
+
+      const payload = { email, medicines };
+
+      // Disable submit button and show loading state
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Scheduling...';
+
+      try {
+        const res = await fetch('/api/schedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await res.json();
+
+        if (res.ok) {
+          alert('Reminders scheduled successfully! Please check your email inbox (and spam folder if necessary).');
+        } else {
+          alert(result.message || 'Something went wrong. Please try again.');
+        }
+      } catch (err) {
+        alert('Error connecting to the server. Please try again later.');
+        console.error(err);
+      } finally {
+        // Re-enable submit button
+        submitBtn.disabled = false;
+        submitBtn.textContent = '📅 Schedule Reminders';
+      }
+    });
+  </script>
+</body>
+
+</html>
