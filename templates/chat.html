@@ -28,6 +28,9 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
+            background: linear-gradient(135deg, #7c5dc4, #3e9aaf, #98e4c2);
+
+            font-family: 'Segoe UI', sans-serif;
         }
 
         .container-fluid {
@@ -35,18 +38,52 @@
             height: 100%;
             overflow: hidden;
             max-width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         .row {
             height: 100%;
             margin: 0;
             justify-content: center;
+            width: 100%;
         }
 
         .col-md-10,
         .col-xl-8 {
             height: 100%;
             padding: 0;
+        }
+
+        /* Glassmorphism effect */
+        .card {
+            height: 100%;
+            border-radius: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+        }
+
+        .card-header {
+            background: rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+
+        .card-body {
+            background: transparent;
+            
+        }
+
+        .card-footer {
+            background: rgba(255, 255, 255, 0.1);
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
         }
 
         /* Adjust column width for different screen sizes */
@@ -88,6 +125,7 @@
 
             .user_info {
                 padding-top: 5px;
+
             }
 
             .user_info span {
@@ -198,6 +236,10 @@
             white-space: normal;
             word-wrap: break-word;
             padding: 12px 18px;
+            background-color: #5bd055;
+            color: black;
+            border-radius: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
         .msg_cotainer_send {
@@ -205,6 +247,11 @@
             white-space: normal;
             word-wrap: break-word;
             padding: 12px 18px;
+            background-color: rgb(225, 227, 227);
+            ;
+            color: black;
+            border-radius: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
         /* Style for medical help response */
@@ -711,6 +758,57 @@
         .d-flex.justify-content-end.mb-4 {
             margin-bottom: 1.8rem !important;
         }
+
+        .user_info {
+            margin-top: auto;
+            margin-bottom: auto;
+            margin-left: 15px;
+            position: relative;
+            width: 100%;
+            background: transparent;
+        }
+
+        .user_info span {
+            font-size: 20px;
+            color: white;
+        }
+
+        .user_info p {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Welcome Message Styles */
+        .welcome-message {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.1);
+            padding: 5px 15px;
+            border-radius: 20px;
+            animation: slideIn 0.5s ease-out;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .welcome-text {
+            color: #5bd055;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translate(20px, -50%);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(0, -50%);
+            }
+        }
     </style>
 </head>
 
@@ -722,7 +820,7 @@
                     <div class="card-header msg_head">
                         <div class="d-flex bd-highlight">
                             <div class="img_cont">
-                                <img src="https://cdn-icons-png.flaticon.com/512/387/387569.png"
+                                <img src="static/images/medical-team.png"
                                     class="rounded-circle user_img" />
                                 <span class="online_icon"></span>
                             </div>
@@ -997,7 +1095,7 @@
                 var userHtml = '<div class="d-flex justify-content-end mb-4">' +
                     '<div class="msg_cotainer_send">' + rawText +
                     '<span class="msg_time_send">' + str_time + "</span></div>" +
-                    '<div class="img_cont_msg"><img src="https://i.ibb.co/d5b84Xw/Untitled-design.png" class="rounded-circle user_img_msg"></div></div>';
+                    '<div class="img_cont_msg"><img src="static/images/user1.png" class="rounded-circle user_img_msg"></div></div>';
 
                 $("#text").val("");
                 $("#messageFormeight").append(userHtml);

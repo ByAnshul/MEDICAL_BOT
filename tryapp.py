@@ -156,7 +156,7 @@ def chat():
         print("No user_id in session, redirecting to signin")  # Debug log
         return redirect(url_for('signin'))
         
-    return render_template('chat_with_faq.html')
+    return render_template('chat2.html')
 
 @app.route('/chat-with-faq')
 def chat_with_faq():
@@ -167,14 +167,14 @@ def chat_with_faq():
         print("No user_id in session, redirecting to signin")  # Debug log
         return redirect(url_for('signin'))
         
-    return render_template('chat_with_faq.html')
+    return render_template('chat2.html')
 
 @app.route('/main')
 def main():
     # Redirect to signin if not logged in
     if 'user_id' not in session:
         return redirect(url_for('signin'))
-    return render_template('chat_with_faq.html')
+    return render_template('chat2.html')
 
 @app.get("/signin")  # Add this route
 async def signin():
