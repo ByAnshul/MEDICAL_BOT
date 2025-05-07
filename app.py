@@ -177,7 +177,7 @@ def main():
     return render_template('chat2.html')
 
 @app.get("/signin")  # Add this route
-async def signin():
+def signin():
     return render_template("signin.html")
 
 @app.route('/signup', methods=['POST'])
