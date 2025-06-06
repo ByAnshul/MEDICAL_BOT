@@ -9,20 +9,14 @@ from collections import deque
 from datetime import datetime, timedelta
 import base64
 import requests
-from places import MedicalPlacesSystem  # Add this import
+from places import MedicalPlacesSystem
 from apscheduler.schedulers.background import BackgroundScheduler
 import json
 
-from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.chat_models import ChatOpenAI
+from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_pinecone import PineconeVectorStore
-# from langchain.chat_models import ChatOpenAI  # Use ChatOpenAI with Together API
 from langchain.chains import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate
-from src.helper import download_hugging_face_embeddings
+from src.lazy_loader import get_embeddings, get_llm, get_retriever, get_question_answer_chain
 from src.prompt import get_system_prompt, customize_response
 from src.database import get_user_health, create_user, verify_user, init_db
 
@@ -34,46 +28,6 @@ app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-key-123')
 
 # Load environment variables
 load_dotenv()
-
-# Retrieve API keys from environment variables
-PINECONE_API_KEY = os.environ.get('PINECONE_API_KEY')
-TOGETHER_API_KEY = os.environ.get('TOGETHER_API_KEY2')
-
-# Ensure keys are available for libraries
-os.environ["PINECONE_API_KEY"] = PINECONE_API_KEY
-os.environ["TOGETHER_API_KEY"] = TOGETHER_API_KEY
-
-# Load embeddings
-embeddings = download_hugging_face_embeddings()
-
-# Initialize Pinecone index
-index_name = "medicalbot-try"
-docsearch = PineconeVectorStore.from_existing_index(
-    index_name=index_name,
-    embedding=embeddings
-)
-
-# Create retriever
-retriever = docsearch.as_retriever(search_type="similarity", search_kwargs={"k": 5})
-
-# Initialize LLM
-llm = ChatOpenAI(
-    openai_api_key=TOGETHER_API_KEY,
-    openai_api_base="https://api.together.xyz/v1",
-    model_name="meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",
-    temperature=0.4,
-    max_tokens=500
-)
-
-# Build prompt chain with context
-prompt = ChatPromptTemplate.from_messages([
-    ("system", get_system_prompt() + "\n\nPrevious conversation context:\n{context}"),
-    ("human", "{input}"),
-])
-
-# Create the question-answer and retrieval chain
-question_answer_chain = create_stuff_documents_chain(llm, prompt)
-rag_chain = create_retrieval_chain(retriever, question_answer_chain)
 
 # Configure upload folder
 UPLOAD_FOLDER = 'uploads'
@@ -94,7 +48,7 @@ except Exception as e:
     print(f"Error initializing MedicalPlacesSystem: {str(e)}")
     import traceback
     print(f"Full traceback: {traceback.format_exc()}")
-    medical_system = None  # Explicitly set to None on failure
+    medical_system = None
 
 # Initialize scheduler for prescriptions
 scheduler = BackgroundScheduler()
@@ -103,8 +57,8 @@ scheduler.start()
 # Configure email settings for the prescription system
 MAILJET_API_KEY = os.getenv('MAILJET_API_KEY')
 MAILJET_SECRET_KEY = os.getenv('MAILJET_API_SECRET')
-FROM_EMAIL = 'anshul.saini1507@gmail.com'  # Make sure this email is verified with Mailjet
-FROM_NAME = 'Medical Reminder'  # Changed from "Prescription System" to avoid spam triggers
+FROM_EMAIL = 'anshul.saini1507@gmail.com'
+FROM_NAME = 'Medical Reminder'
 
 def init_session():
     """Initialize session variables if they don't exist"""
@@ -119,7 +73,7 @@ def format_conversation_history():
         return ""
     
     formatted_history = []
-    for exchange in session['conversation_history'][-5:]:  # Get last 5 exchanges
+    for exchange in session['conversation_history'][-5:]:
         formatted_history.append(f"User: {exchange['user']}")
         formatted_history.append(f"Assistant: {exchange['assistant']}")
     return "\n".join(formatted_history)
@@ -141,57 +95,87 @@ def process_pdf(file_path):
     chunks = text_splitter.split_documents(pages)
     return chunks
 
-# Add this function after the imports and before the routes
-def is_medical_query(query):
-    """Check if the query is related to medical or health topics"""
-    # List of medical-related keywords and topics
-    medical_keywords = [
-        'health', 'medical', 'doctor', 'hospital', 'disease', 'symptom', 
-        'treatment', 'medicine', 'patient', 'diagnosis', 'therapy', 
-        'surgery', 'clinic', 'nurse', 'pharmacy', 'prescription', 'pain',
-        'illness', 'condition', 'disorder', 'infection', 'virus', 'bacteria',
-        'vaccine', 'vaccination', 'checkup', 'examination', 'test', 'scan',
-        'x-ray', 'mri', 'ct', 'blood', 'pressure', 'heart', 'lung', 'brain',
-        'bone', 'muscle', 'joint', 'skin', 'eye', 'ear', 'nose', 'throat',
-        'dental', 'mental', 'psychological', 'cancer', 'diabetes', 'asthma',
-        'allergy', 'fever', 'cold', 'flu', 'covid', 'coronavirus', 'pandemic',
-        'epidemic', 'outbreak', 'emergency', 'ambulance', 'paramedic', 'first aid',
-        'recovery', 'rehabilitation', 'physiotherapy', 'occupational therapy',
-        'diet', 'nutrition', 'exercise', 'fitness', 'wellness', 'prevention',
-        'vaccination', 'immunization', 'antibiotic', 'antiviral', 'medication',
-        'dosage', 'side effect', 'complication', 'prognosis', 'remission',
-        'chronic', 'acute', 'terminal', 'palliative', 'hospice', 'mortality',
-        'morbidity', 'epidemiology', 'pathology', 'anatomy', 'physiology',
-        'biochemistry', 'genetics', 'immunology', 'microbiology', 'pharmacology',
-        'toxicology', 'radiology', 'ultrasound', 'endoscopy', 'biopsy',
-        'transplant', 'prosthesis', 'implant', 'pacemaker', 'defibrillator',
-        'dialysis', 'chemotherapy', 'radiation', 'hormone', 'steroid', 'insulin',
-        'antidepressant', 'antipsychotic', 'anesthetic', 'analgesic', 'antacid',
-        'antihistamine', 'decongestant', 'expectorant', 'laxative', 'diuretic',
-        'anticoagulant', 'anticonvulsant', 'antifungal', 'antimalarial',
-        'antiretroviral', 'antitubercular', 'antiviral', 'antibacterial',
-        'antiseptic', 'disinfectant', 'sanitizer', 'mask', 'glove', 'gown',
-        'syringe', 'needle', 'catheter', 'stent', 'suture', 'bandage', 'plaster',
-        'cast', 'brace', 'crutch', 'wheelchair', 'walker', 'cane', 'prosthesis',
-        'hearing aid', 'glasses', 'contact lens', 'denture', 'pacemaker',
-        'defibrillator', 'insulin pump', 'cpap', 'ventilator', 'dialysis machine',
-        'mri machine', 'ct scanner', 'x-ray machine', 'ultrasound machine',
-        'endoscope', 'colonoscope', 'laparoscope', 'arthroscope', 'bronchoscope',
-        'cystoscope', 'gastroscope', 'hysteroscope', 'laryngoscope', 'otoscope',
-        'proctoscope', 'sigmoidoscope', 'thoracoscope', 'ureteroscope'
-    ]
+@app.route('/get', methods=["POST"])
+def get_response():
+    msg = request.form["msg"]
+    print("User input:", msg)
     
-    # Convert query to lowercase for case-insensitive matching
-    query_lower = query.lower()
+    try:
+        # Initialize session if needed
+        init_session()
+        
+        # Get conversation context
+        context = format_conversation_history()
+        
+        # Get user's health information
+        health_info = None
+        if 'user_id' in session and session['user_id'] != 'guest':
+            health_info = get_user_health(session['user_id'])
+        
+        # Get only the most recent document ID
+        recent_doc_id = None
+        if 'uploaded_docs' in session and session['uploaded_docs']:
+            recent_doc_id = session['uploaded_docs'][-1]
+        
+        # Configure retriever with document filter
+        search_kwargs = {"k": 3}  # Reduced from 5 to 3
+        if recent_doc_id:
+            search_kwargs["filter"] = {"doc_id": recent_doc_id}
+        
+        # Get retriever lazily
+        retriever = get_retriever(k=3)
+        
+        # Get question answer chain lazily
+        question_answer_chain = get_question_answer_chain()
+        
+        # Create retrieval chain
+        rag_chain = create_retrieval_chain(retriever, question_answer_chain)
+        
+        # Get relevant documents from Pinecone
+        response = rag_chain.invoke({
+            "input": msg,
+            "context": context
+        })
+        answer = response["answer"]
     
-    # Check if query contains any medical keywords
-    return any(keyword in query_lower for keyword in medical_keywords)
-
-# ---------- ROUTES ----------
+        # Customize response based on user's health information
+        if health_info:
+            answer = customize_response(
+                answer,
+                symptoms=health_info.get('symptoms'),
+                diseases=health_info.get('diseases')
+            )
+        
+        print("Response:", answer)
+            
+        # Update conversation history in session
+        session['conversation_history'].append({
+            "user": msg,
+            "assistant": answer
+        })
+        
+        # Keep only last 5 exchanges
+        if len(session['conversation_history']) > 5:
+            session['conversation_history'] = session['conversation_history'][-5:]
+        
+        # Update current context
+        session['current_context'] = {
+            "last_question": msg,
+            "last_answer": answer
+        }
+        
+        # Ensure session changes are saved
+        session.modified = True
+        
+        return str(answer)
+    except Exception as e:
+        print("Error:", str(e))
+        return "I apologize, but I encountered an error while processing your question. Please try again."
 
 @app.route('/')
 def index():
-    return render_template('index.html')  # Homepage
+    # Show the landing page
+    return render_template('about.html')
 
 @app.route('/chat')
 def chat():
@@ -201,8 +185,26 @@ def chat():
     if 'user_id' not in session:
         print("No user_id in session, redirecting to signin")  # Debug log
         return redirect(url_for('signin'))
+    
+    # Pre-load the model when entering chat
+    try:
+        # Initialize model components
+        print("Pre-loading model components...")
+        get_embeddings()
+        get_llm()
         
-    return render_template('chat.html')
+        print("Model components loaded successfully")
+        
+        # Set model_loaded flag in session
+        session['model_loaded'] = True
+        session.modified = True
+    except Exception as e:
+        print(f"Error pre-loading model: {str(e)}")
+        session['model_loaded'] = False
+        session.modified = True
+    
+    return render_template('chat2.html', model_loaded=session.get('model_loaded', False))
+
 
 @app.route('/chat-with-faq')
 def chat_with_faq():
@@ -213,14 +215,14 @@ def chat_with_faq():
         print("No user_id in session, redirecting to signin")  # Debug log
         return redirect(url_for('signin'))
         
-    return render_template('chat.html')
+    return render_template('chat2.html')
 
 @app.route('/main')
 def main():
     # Redirect to signin if not logged in
     if 'user_id' not in session:
         return redirect(url_for('signin'))
-    return render_template('chat.html')
+    return render_template('chat2.html')
 
 @app.get("/signin")  # Add this route
 def signin():
@@ -309,116 +311,6 @@ def guest_login():
             'success': False,
             'message': str(e)
         }), 500
-
-@app.route('/get', methods=["POST"])
-def get_response():
-    msg = request.form["msg"]
-    print("User input:", msg)
-    
-    try:
-        # Initialize session if needed
-        init_session()
-        
-        # Get conversation context
-        context = format_conversation_history()
-        
-        # Get user's health information
-        health_info = None
-        if 'user_id' in session and session['user_id'] != 'guest':
-            health_info = get_user_health(session['user_id'])
-        
-        # Get only the most recent document ID
-        recent_doc_id = None
-        if 'uploaded_docs' in session and session['uploaded_docs']:
-            recent_doc_id = session['uploaded_docs'][-1]
-            print(f"Using most recent document ID: {recent_doc_id}")
-        
-        # Configure retriever with document filter
-        search_kwargs = {"k": 5}
-        if recent_doc_id:
-            search_kwargs["filter"] = {"doc_id": recent_doc_id}
-            print(f"Searching with filter: {search_kwargs}")
-        
-        # Update retriever with new search parameters
-        retriever = docsearch.as_retriever(
-            search_type="similarity",
-            search_kwargs=search_kwargs
-        )
-        
-        # First, try to get relevant documents from Pinecone
-        try:
-            relevant_docs = retriever.get_relevant_documents(msg)
-            
-            # Check if we found any relevant medical documents
-            if not relevant_docs:
-                return "I apologize, but I am a medical assistant and can only provide information related to health and medical topics. Please ask me about medical or health-related questions."
-            
-            # Check if the documents are actually medical-related
-            medical_content_found = False
-            for doc in relevant_docs:
-                # Check if the document content contains medical-related terms
-                content = doc.page_content.lower()
-                if any(term in content for term in ['medical', 'health', 'disease', 'treatment', 'symptom', 'diagnosis', 'patient', 'doctor', 'hospital', 'medicine', 'therapy']):
-                    medical_content_found = True
-                    break
-            
-            if not medical_content_found:
-                return "I apologize, but I am a medical assistant and can only provide information related to health and medical topics. Please ask me about medical or health-related questions."
-            
-        except Exception as e:
-            print(f"Error retrieving documents: {str(e)}")
-            return "I apologize, but I am a medical assistant and can only provide information related to health and medical topics. Please ask me about medical or health-related questions."
-        
-        # Create new chain with updated retriever
-        rag_chain = create_retrieval_chain(
-            retriever,
-            question_answer_chain
-        )
-        
-        # Get relevant documents from Pinecone
-        response = rag_chain.invoke({
-            "input": msg,
-            "context": context
-        })
-        answer = response["answer"]
-        
-        # Additional check to ensure the response is medical-related
-        if not any(term in answer.lower() for term in ['medical', 'health', 'disease', 'treatment', 'symptom', 'diagnosis', 'patient', 'doctor', 'hospital', 'medicine', 'therapy']):
-            return "I apologize, but I am a medical assistant and can only provide information related to health and medical topics. Please ask me about medical or health-related questions."
-    
-        # Customize response based on user's health information
-        if health_info:
-            answer = customize_response(
-                answer,
-                symptoms=health_info.get('symptoms'),
-                diseases=health_info.get('diseases')
-            )
-        
-        print("Response:", answer)
-            
-        # Update conversation history in session
-        session['conversation_history'].append({
-            "user": msg,
-            "assistant": answer
-        })
-            
-        # Keep only last 5 exchanges
-        if len(session['conversation_history']) > 5:
-            session['conversation_history'] = session['conversation_history'][-5:]
-            
-        # Update current context
-        session['current_context'] = {
-            "last_question": msg,
-            "last_answer": answer
-        }
-        
-        # Ensure session changes are saved
-        session.modified = True
-        
-        return str(answer)
-    except Exception as e:
-        print("Error:", str(e))
-        return "I apologize, but I encountered an error while processing your question. Please try again."
 
 @app.route("/upload", methods=["POST"])
 def upload_file():
@@ -734,27 +626,46 @@ def find_medical_help():
 def get_random_tips():
     """Endpoint to get 5 random medical tips from general_help.txt"""
     try:
-        # Read tips from general_help.txt
-        with open('general_help.txt', 'r') as file:
+        # Read tips from general_help.txt with UTF-8 encoding
+        with open('general_help.txt', 'r', encoding='utf-8') as file:
             all_tips = file.readlines()
         
         # Clean up tips (remove line numbers and strip whitespace)
         cleaned_tips = []
         for tip in all_tips:
+            # Skip empty lines
+            if not tip.strip():
+                continue
             # Extract the text after the number and period
             if '.' in tip:
                 tip_text = tip.split('.', 1)[1].strip()
-                cleaned_tips.append(tip_text)
+                if tip_text:  # Only add non-empty tips
+                    cleaned_tips.append(tip_text)
         
-        # Select 5 random tips
+        if not cleaned_tips:
+            return jsonify({
+                'success': False,
+                'error': 'No tips found in the file'
+            }), 404
+        
+        # Select 5 random tips (or all tips if less than 5)
         import random
-        random_tips = random.sample(cleaned_tips, 5)
+        num_tips = min(5, len(cleaned_tips))
+        random_tips = random.sample(cleaned_tips, num_tips)
+        
+        print(f"Successfully retrieved {num_tips} random tips")  # Debug log
         
         return jsonify({
             'success': True,
             'tips': random_tips
         })
     
+    except FileNotFoundError:
+        print("Error: general_help.txt file not found")
+        return jsonify({
+            'success': False,
+            'error': 'Tips file not found'
+        }), 404
     except Exception as e:
         print(f"Error getting random tips: {str(e)}")
         return jsonify({
@@ -922,4 +833,5 @@ def schedule_reminders():
     return jsonify({'status': 'success', 'message': 'Reminders scheduled successfully!'})
 
 if __name__ == '__main__':
-    app.run(debug=False, use_reloader=False)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)

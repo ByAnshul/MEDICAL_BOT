@@ -174,7 +174,8 @@ def get_response():
 
 @app.route('/')
 def index():
-    return render_template('index.html')  # Homepage
+    # Show the landing page
+    return render_template('about.html')
 
 @app.route('/chat')
 def chat():
@@ -632,20 +633,39 @@ def get_random_tips():
         # Clean up tips (remove line numbers and strip whitespace)
         cleaned_tips = []
         for tip in all_tips:
+            # Skip empty lines
+            if not tip.strip():
+                continue
             # Extract the text after the number and period
             if '.' in tip:
                 tip_text = tip.split('.', 1)[1].strip()
-                cleaned_tips.append(tip_text)
+                if tip_text:  # Only add non-empty tips
+                    cleaned_tips.append(tip_text)
         
-        # Select 5 random tips
+        if not cleaned_tips:
+            return jsonify({
+                'success': False,
+                'error': 'No tips found in the file'
+            }), 404
+        
+        # Select 5 random tips (or all tips if less than 5)
         import random
-        random_tips = random.sample(cleaned_tips, 5)
+        num_tips = min(5, len(cleaned_tips))
+        random_tips = random.sample(cleaned_tips, num_tips)
+        
+        print(f"Successfully retrieved {num_tips} random tips")  # Debug log
         
         return jsonify({
             'success': True,
             'tips': random_tips
         })
     
+    except FileNotFoundError:
+        print("Error: general_help.txt file not found")
+        return jsonify({
+            'success': False,
+            'error': 'Tips file not found'
+        }), 404
     except Exception as e:
         print(f"Error getting random tips: {str(e)}")
         return jsonify({
