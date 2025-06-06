@@ -16,5 +16,7 @@ flask-sqlalchemy
 transformers
 torch
 flask-cors
+
 speechrecognition
+apscheduler
 together
